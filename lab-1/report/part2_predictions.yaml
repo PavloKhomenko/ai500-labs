@@ -4,8 +4,8 @@
 # Runs: base, none-s42, none-s43, aux_1e-3-s42, aux_1e-2-s42, bias-s42, bias-s43, frozen_router-s42, aux_z-s42
 
 - id: H1
-  claim: Base model is fairly balanced on Ukrainian overall (global batch balancing in pretraining), with some language-specific experts
-  predicted: "base mean MaxVio on UA test = ___ (noise floor ~___); JS(uk,en) > 0"
+  claim: Base model is not as balanced on Ukrainian as on English, but not too far off
+  predicted: "base mean MaxVio on UA test = 5.465 (noise floor ~0.01101); JS(uk,en) > 0"
   measure: [base/ua_test/maxvio_mean, base/ua_test/maxvio_max, base/js_uk_en/mean]
 
 - id: H2
