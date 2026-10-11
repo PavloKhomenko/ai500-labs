@@ -1,0 +1,44 @@
+# Part 2 pre-registered predictions. Write the numbers AFTER Stage 1 and BEFORE Stage 2; do not edit afterwards.
+# `measure` lists keys of outputs/part2/eval/all_metrics.json (run/set/metric); Stage 3 fills in the measured
+# values next to each prediction, and you write the verdict.
+# Runs: base, none-s42, none-s43, aux_1e-3-s42, aux_1e-2-s42, bias-s42, bias-s43, frozen_router-s42, aux_z-s42
+
+- id: H1
+  claim: Base model is fairly balanced on Ukrainian overall (global batch balancing in pretraining), with some language-specific experts
+  predicted: "base mean MaxVio on UA test = ___ (noise floor ~___); JS(uk,en) > 0"
+  measure: [base/ua_test/maxvio_mean, base/ua_test/maxvio_max, base/js_uk_en/mean]
+
+- id: H2
+  claim: Control A drifts toward imbalance during Ukrainian training
+  predicted: "none-s42 mean MaxVio > base by ___"
+  measure: [base/ua_test/maxvio_mean, none-s42/ua_test/maxvio_mean, none-s43/ua_test/maxvio_mean]
+
+- id: H3
+  claim: C (aux 1e-2) gives the lowest MaxVio at a small perplexity cost
+  predicted: "aux_1e-2 MaxVio = ___, ppl cost vs none = +___"
+  measure: [aux_1e-2-s42/ua_test/maxvio_mean, aux_1e-2-s42/ua_test/ppl, none-s42/ua_test/ppl]
+
+- id: H4
+  claim: D (bias) gives similar balance to C at almost no perplexity cost
+  predicted: "bias MaxVio within ___ of aux_1e-2; ppl within ___ of none"
+  measure: [bias-s42/ua_test/maxvio_mean, bias-s43/ua_test/maxvio_mean, bias-s42/ua_test/ppl, bias-s43/ua_test/ppl]
+
+- id: H5
+  claim: Perplexity differences between strategies are small, possibly within seed noise
+  predicted: "|ppl(strategy) - ppl(none)| < seed spread |ppl(none-s42) - ppl(none-s43)| = ___"
+  measure: [none-s42/ua_test/ppl, none-s43/ua_test/ppl, aux_1e-3-s42/ua_test/ppl, aux_1e-2-s42/ua_test/ppl, bias-s42/ua_test/ppl]
+
+- id: H6
+  claim: UA/EN routing differs most in the early and late layers
+  predicted: "JS(uk,en) per layer is U-shaped (see figures/js_uk_en_base.png)"
+  measure: [base/js_uk_en/mean]
+
+- id: H7
+  claim: Frozen router E drifts less than A (router learning vs attention-induced drift)
+  predicted: "Jaccard vs base: frozen_router > none"
+  measure: [frozen_router-s42/ua_test/drift_jaccard, none-s42/ua_test/drift_jaccard]
+
+- id: H8
+  claim: Training on Ukrainian costs some English quality (forgetting)
+  predicted: "FLORES-en ppl: none > base by ___"
+  measure: [base/flores_en/ppl, none-s42/flores_en/ppl]
