@@ -144,7 +144,8 @@ def prepare_part2_data(cfg, tokenizer, path):
     for lang in ["uk", "en"]:
         report[f"flores_{lang}"] = {"sentences": len(flores_ids[lang]), "tokens": sum(map(len, flores_ids[lang]))}
 
-    torch.save(data, data_file)
+    # Non-zip format: Kaggle unpacks zip archives (the default torch.save format) in notebook inputs.
+    torch.save(data, data_file, _use_new_zipfile_serialization=False)
     report_file.write_text(json.dumps(report, indent=2, ensure_ascii=False))
     (path / "flores_texts.json").write_text(json.dumps(flores_texts, ensure_ascii=False))
     return data, report

@@ -223,7 +223,7 @@ def train(model, data, cfg, strategy, seed, run_dir, max_steps=None, save=True, 
             "model": trainable_state(model),
             "bias": torch.stack([b.bias for b in balancers]).cpu() if balancers else None,
             "strategy": strategy, "seed": seed, "summary": summary, "config": cfg,
-        }, run_dir / "final.pt")
+        }, run_dir / "final.pt", _use_new_zipfile_serialization=False)  # non-zip: Kaggle inputs unpack zips
         last_path.unlink(missing_ok=True)
         (run_dir / "summary.json").write_text(json.dumps(summary, indent=2))
     return summary
