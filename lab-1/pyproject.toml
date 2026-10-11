@@ -1,0 +1,24 @@
+[project]
+name = "lab1"
+version = "0.1.0"
+description = "AI500 Lab 1: long context and mixture of experts"
+requires-python = ">=3.11"
+# torch comes in transitively (accelerate, peft) but the Kaggle setup filters it out:
+# Kaggle ships its own CUDA build. Log torch.__version__ in every run.
+dependencies = [
+    "transformers",
+    "datasets",
+    "accelerate",
+    "peft",
+    "sacrebleu",
+    "pyyaml",
+    "matplotlib",
+    "pandas",
+]
+
+[dependency-groups]
+dev = ["pytest"]
+
+[build-system]
+requires = ["uv_build>=0.8,<0.13"]
+build-backend = "uv_build"
