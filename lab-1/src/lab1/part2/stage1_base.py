@@ -35,7 +35,6 @@ def check_data(data, report, tok):
               "tokens": report[f"flores_{lang}"]["tokens"]} for lang in ["uk", "en"]]
     if any(report["flores_sentences_in_train"].values()):
         print(f"WARNING: FLORES sentences found in train: {report['flores_sentences_in_train']}")
-    # Tokenization: we add BOS / EOS ourselves; there must never be two BOS in a row.
     assert (tok.bos_token_id, tok.eos_token_id) == (1, 2), "unexpected special-token ids"
     for split in ["train", "val", "test"]:
         flat = data[split].flatten()
@@ -48,7 +47,7 @@ def check_data(data, report, tok):
 def fertility(data, flores_texts):
     rows = []
     for lang in ["uk", "en"]:
-        n_tok = sum(len(s) - 1 for s in data["flores"][lang])  # minus BOS
+        n_tok = sum(len(s) - 1 for s in data["flores"][lang])
         n_words = sum(len(t.split()) for t in flores_texts[lang])
         n_chars = sum(len(t) for t in flores_texts[lang])
         rows.append({"lang": lang, "tokens": n_tok, "tokens_per_word": n_tok / n_words,
@@ -57,8 +56,6 @@ def fertility(data, flores_texts):
 
 
 def hf_aux_check(name, ids, device):
-    """The assignment's check: HF aux loss is non-zero and changes with the coefficient,
-    which must be passed to from_pretrained (changing the config afterwards does nothing)."""
     def run(model):
         with torch.no_grad(), torch.autocast("cuda", dtype=torch.float16, enabled=device.type == "cuda"):
             return model(input_ids=ids, labels=ids)
@@ -92,7 +89,7 @@ def hf_aux_check(name, ids, device):
 
 def model_card(model):
     c = model.config
-    count = lambda key: sum(p.numel() for n, p in model.named_parameters() if key in n)  # noqa: E731
+    count = lambda key: sum(p.numel() for n, p in model.named_parameters() if key in n)
     total = sum(p.numel() for p in model.parameters())
     expert, emb = count(".mlp.experts."), count("embed_tokens")
     active = total - expert + expert * c.num_experts_per_tok / c.num_local_experts
@@ -113,7 +110,6 @@ def model_card(model):
 
 
 def router_equivalence(model, ids):
-    """The patched router (bias off) must reproduce the original model exactly."""
     model.eval()
     with torch.no_grad(), torch.autocast("cuda", dtype=torch.float16, enabled=ids.is_cuda):
         ref = model(input_ids=ids).logits.float()
@@ -127,7 +123,6 @@ def router_equivalence(model, ids):
 
 
 def grad_check(model, routers, ids):
-    """Our aux loss under gradient checkpointing (use_reentrant=False) reaches every router."""
     prepare_for_training(model, train_router=True)
     model.train()
     with torch.autocast("cuda", dtype=torch.float16, enabled=ids.is_cuda):

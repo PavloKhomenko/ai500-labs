@@ -12,13 +12,6 @@ from .balancing import stats_from_counts
 
 
 class InstrumentedRouter(MixtralTopKRouter):
-    """MixtralTopKRouter (transformers 5.18) that
-    - remembers its last logits and selected experts (for metrics and our own aux / z losses),
-    - optionally selects experts with a BiasBalancer. Gate weights always come from the
-      unbiased softmax, renormalized over the selected experts, exactly as in the original.
-    With balancer=None the output is identical to the original router (checked in Stage 1).
-    """
-
     balancer = None
 
     def forward(self, hidden_states):
@@ -36,7 +29,6 @@ class InstrumentedRouter(MixtralTopKRouter):
 
 
 def patch_routers(model, balancers=None):
-    """Swap every layer's router to InstrumentedRouter in place (weights untouched). Returns the routers."""
     routers = []
     for i, layer in enumerate(model.model.layers):
         router = layer.mlp.gate
@@ -48,11 +40,6 @@ def patch_routers(model, balancers=None):
 
 @torch.no_grad()
 def evaluate(model, routers, batches, keep_topk=False):
-    """Teacher-forced NLL + routing statistics over (input_ids, attention_mask) batches.
-
-    Perplexity = exp(total NLL / number of predicted tokens); padding is excluded from the
-    loss and from all routing counts. Returns raw tensors; see summarize() for metrics.
-    """
     model.eval()
     device = next(model.parameters()).device
     n_layers, n_experts = len(routers), routers[0].num_experts
@@ -65,7 +52,6 @@ def evaluate(model, routers, batches, keep_topk=False):
         ids, mask = ids.to(device), mask.to(device)
         with torch.autocast("cuda", dtype=torch.float16, enabled=device.type == "cuda"):
             logits = model(input_ids=ids, attention_mask=mask, output_router_logits=False).logits
-        # One row at a time: fp32 logits of a whole batch (B x 1024 x 128k) would not fit on a T4.
         nll = torch.stack([F.cross_entropy(logits[b, :-1].float(), ids[b, 1:], reduction="none") for b in range(len(ids))])
         nll = nll * mask[:, 1:]
         seq_nll += nll.sum(dim=1).tolist()
@@ -95,12 +81,11 @@ def evaluate(model, routers, batches, keep_topk=False):
         "seq_nll": seq_nll,
     }
     if keep_topk:
-        out["topk"] = torch.stack([torch.cat(t) for t in topk], dim=1)  # [tokens, layers, k]
+        out["topk"] = torch.stack([torch.cat(t) for t in topk], dim=1)
     return out
 
 
 def eval_sets(data, eval_cfg, pad_id):
-    """The three held-out sets as batch factories (same tokens, same order on every call)."""
     return {
         "ua_test": lambda: block_batches(data["test"], eval_cfg["block_batch"]),
         "flores_uk": lambda: sentence_batches(data["flores"]["uk"], eval_cfg["sentence_batch"], pad_id),
@@ -109,8 +94,6 @@ def eval_sets(data, eval_cfg, pad_id):
 
 
 def evaluate_all(model, routers, sets, path):
-    """Evaluate on every set, save raw outputs under path/<set>/, add UA-vs-EN JS divergence.
-    Returns ({set: metrics}, {set: raw result})."""
     metrics, raw = {}, {}
     for name, make_batches in sets.items():
         raw[name] = evaluate(model, routers, make_batches(), keep_topk=True)
@@ -124,7 +107,6 @@ def evaluate_all(model, routers, sets, path):
 
 
 def summarize(result):
-    """Scalar + per-layer metrics (JSON-friendly) from an evaluate() result."""
     s = stats_from_counts(result["counts"])
     return {
         "ppl": result["ppl"],
@@ -146,7 +128,6 @@ def summarize(result):
 
 
 def save_eval(result, path):
-    """metrics.json + raw counts (+ top-k indices) + per-sequence NLL."""
     path.mkdir(parents=True, exist_ok=True)
     np.save(path / "counts.npy", result["counts"].numpy())
     np.save(path / "seq_nll.npy", np.array(result["seq_nll"]))
@@ -158,11 +139,6 @@ def save_eval(result, path):
 
 
 def noise_floor(n_tokens, n_experts, k, n_layers, repeats=1000, device="cpu", chunk=50_000):
-    """MaxVio of a uniformly random top-k router on n_tokens tokens.
-
-    Draws `repeats` independent single-layer routers. The floor for "max over n_layers" is
-    the max of n_layers layers resampled from those draws (layers are independent).
-    """
     gen = torch.Generator(device=device).manual_seed(0)
     maxvio = []
     for _ in range(repeats):
@@ -185,7 +161,6 @@ def noise_floor(n_tokens, n_experts, k, n_layers, repeats=1000, device="cpu", ch
 
 
 def jaccard_drift(topk_a, topk_b, n_experts, chunk=20_000):
-    """Mean Jaccard overlap of two top-k sets on the same tokens, per layer. Inputs [tokens, layers, k]."""
     assert topk_a.shape == topk_b.shape, "drift needs the same tokens"
     k = topk_a.shape[-1]
     total = torch.zeros(topk_a.shape[1], dtype=torch.float64)
@@ -198,7 +173,6 @@ def jaccard_drift(topk_a, topk_b, n_experts, chunk=20_000):
 
 
 def js_divergence(counts_p, counts_q):
-    """Jensen-Shannon divergence (base 2, in [0, 1]) between two load distributions, per layer."""
     p = counts_p.double() / counts_p.sum(-1, keepdim=True)
     q = counts_q.double() / counts_q.sum(-1, keepdim=True)
     m = (p + q) / 2
@@ -210,11 +184,9 @@ def js_divergence(counts_p, counts_q):
 
 
 def describe_layers(counts, n_top=3):
-    """Base-model analysis: overloaded (> 2x mean) and rarely used (< 0.5x mean) experts per layer,
-    plus early / middle / late layer group averages."""
     s = stats_from_counts(counts)
     n_layers, n_experts = counts.shape
-    f = s["f"] * n_experts  # load relative to the mean (1.0 = balanced)
+    f = s["f"] * n_experts
     layers = []
     for layer in range(n_layers):
         order = f[layer].argsort(descending=True)

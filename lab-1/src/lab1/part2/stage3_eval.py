@@ -30,7 +30,6 @@ DRIFT_SETS = ["ua_test", "flores_en"]
 
 
 def flatten(results):
-    """{run: {set: metrics}} -> {"run/set/metric": value} for every scalar."""
     flat = {}
     for run, sets in results.items():
         for s, m in sets.items():
@@ -60,7 +59,6 @@ def main_table(results, floor, run_info):
 
 
 def seed_table(df):
-    """Per strategy: mean over seeds, plus the per-seed values of the key columns."""
     runs = df[df["seed"].notna()]
     cols = ["ua_ppl", "maxvio_mean", "maxvio_max", "entropy", "drift_jaccard_ua", "flores_en_ppl"]
     out = runs.groupby("strategy")[cols].mean().reset_index()
@@ -76,7 +74,6 @@ def read_log(path):
 
 
 def prediction_table(flat):
-    """report/part2_predictions.yaml: list of {claim, predicted, measure: [keys of all_metrics.json]}."""
     if not PREDICTIONS.exists():
         return None
     rows = []

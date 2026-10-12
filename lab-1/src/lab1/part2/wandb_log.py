@@ -10,9 +10,9 @@ import os
 import matplotlib
 
 matplotlib.use("Agg")
-import matplotlib.pyplot as plt  # noqa: E402
-import numpy as np  # noqa: E402
-import wandb  # noqa: E402
+import matplotlib.pyplot as plt
+import numpy as np
+import wandb
 
 
 def init_run(cfg, name, job_type, config=None, group="part2"):
@@ -30,12 +30,11 @@ def init_run(cfg, name, job_type, config=None, group="part2"):
 
 
 def log(metrics, step=None):
-    if wandb.run is not None:  # every helper is a no-op without an active run (local files are still written)
+    if wandb.run is not None:
         wandb.log(metrics, step=step)
 
 
 def log_per_layer(prefix, values, step=None):
-    """One scalar per layer, e.g. batch MaxVio of each layer at a training step."""
     log({f"{prefix}/layer_{i:02d}": float(v) for i, v in enumerate(values)}, step=step)
 
 
@@ -45,7 +44,6 @@ def log_summary(values):
 
 
 def log_figure(key, fig, path=None):
-    """Log a matplotlib figure as an image and save it as PNG."""
     if path is not None:
         path.parent.mkdir(parents=True, exist_ok=True)
         fig.savefig(path, dpi=150, bbox_inches="tight")
@@ -54,7 +52,6 @@ def log_figure(key, fig, path=None):
 
 
 def log_table(key, df, path=None):
-    """Log a pandas DataFrame as a W&B table and save it as CSV + markdown."""
     if path is not None:
         path.parent.mkdir(parents=True, exist_ok=True)
         df.to_csv(path.with_suffix(".csv"), index=False)
@@ -78,10 +75,7 @@ def finish():
         wandb.finish()
 
 
-# ---------- figures ----------
-
 def heatmap_fig(counts, title):
-    """Layer x expert load, relative to the mean (1.0 = perfectly balanced), on a log2 scale."""
     counts = np.asarray(counts, dtype=float)
     rel = counts / counts.mean(axis=1, keepdims=True)
     fig, ax = plt.subplots(figsize=(12, 4.5))
@@ -95,7 +89,6 @@ def heatmap_fig(counts, title):
 
 
 def layer_lines_fig(series, ylabel, title, hline=None, hline_label=None):
-    """series: {label: per-layer values}."""
     fig, ax = plt.subplots(figsize=(7, 4))
     for label, values in series.items():
         ax.plot(range(len(values)), values, marker="o", ms=3, label=label)
@@ -109,7 +102,6 @@ def layer_lines_fig(series, ylabel, title, hline=None, hline_label=None):
 
 
 def curves_fig(series, ylabel, title, hline=None, hline_label=None, smooth=10):
-    """series: {label: (steps, values)}; moving average over `smooth` steps."""
     fig, ax = plt.subplots(figsize=(8, 4.5))
     for label, (steps, values) in series.items():
         v = np.asarray(values, dtype=float)
@@ -127,7 +119,6 @@ def curves_fig(series, ylabel, title, hline=None, hline_label=None, smooth=10):
 
 
 def scatter_fig(points, xlabel, ylabel, title, xband=None):
-    """points: list of (label, x, y). xband: (low, high) shaded, e.g. the noise floor."""
     fig, ax = plt.subplots(figsize=(6.5, 4.5))
     if xband is not None:
         ax.axvspan(*xband, color="gray", alpha=0.2, label="random-router floor (mean..p95)")

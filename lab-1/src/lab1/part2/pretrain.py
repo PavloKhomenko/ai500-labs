@@ -24,8 +24,6 @@ from .router_stats import evaluate, patch_routers
 
 
 def load_model(name, device, aux_coef=0.0, output_router_logits=False):
-    """fp16, since a T4 has no fast bf16. The HF aux coefficient only works when passed here:
-    changing model.config after loading has no effect. For training we keep it at 0 and use our own loss."""
     model = AutoModelForCausalLM.from_pretrained(
         name, dtype=torch.float16, router_aux_loss_coef=aux_coef, output_router_logits=output_router_logits
     )
@@ -33,12 +31,10 @@ def load_model(name, device, aux_coef=0.0, output_router_logits=False):
 
 
 def is_saved(name):
-    """Parameters that can change in any run: attention projections and routers."""
     return ".self_attn." in name or ".mlp.gate." in name
 
 
 def prepare_for_training(model, train_router):
-    """Freeze everything except attention (+ router); trainable parameters go to fp32."""
     for name, p in model.named_parameters():
         p.requires_grad = ".self_attn." in name or (train_router and ".mlp.gate." in name)
         if p.requires_grad:
@@ -60,7 +56,6 @@ def load_trainable(model, state):
 
 
 def lr_factor(step, warmup, total, min_ratio):
-    """Linear warmup, then cosine decay to min_ratio."""
     if step < warmup:
         return (step + 1) / warmup
     progress = (step - warmup) / max(1, total - warmup)
@@ -90,7 +85,6 @@ def train(model, data, cfg, strategy, seed, run_dir, max_steps=None, save=True, 
     )
     scaler = torch.amp.GradScaler("cuda", enabled=device.type == "cuda")
 
-    # Data order depends only on the seed, so every strategy sees the same blocks in the same order.
     n_blocks = n_steps * mb * accum
     assert n_blocks <= len(data["train"]), f"budget needs {n_blocks} blocks, train pool has {len(data['train'])}"
     order = torch.randperm(len(data["train"]), generator=torch.Generator().manual_seed(seed))
@@ -135,14 +129,11 @@ def train(model, data, cfg, strategy, seed, run_dir, max_steps=None, save=True, 
             with torch.autocast("cuda", dtype=torch.float16, enabled=device.type == "cuda"):
                 out = model(input_ids=ids, labels=ids, output_router_logits=False)
             assert out.aux_loss is None, "HF must not add its own aux loss"
-            with torch.no_grad():  # count before backward (checkpoint recompute re-runs the routers)
+            with torch.no_grad():
                 counts += torch.stack([torch.bincount(r.last_idx.reshape(-1), minlength=n_experts) for r in routers])
                 rec["lse_mean"] += sum(
                     torch.logsumexp(r.last_logits.float(), -1).mean().item() for r in routers
                 ) / (n_layers * accum)
-            # Our losses, summed over layers (each router gets the paper-form gradient).
-            # f_i comes from the step's running counts (all micro-batches so far), not just this
-            # micro-batch: global-batch balancing as in EuroMoE pretraining (Qiu et al., 2025).
             with torch.set_grad_enabled(s["aux"] > 0):
                 aux = sum(aux_loss(r.last_logits, top_k, n_experts, counts=c) for r, c in zip(routers, counts))
             with torch.set_grad_enabled(s["z"] > 0):
@@ -166,7 +157,7 @@ def train(model, data, cfg, strategy, seed, run_dir, max_steps=None, save=True, 
         opt.zero_grad(set_to_none=True)
         lr = sched.get_last_lr()[0]
         sched.step()
-        if balancers:  # sign-rule update after every optimizer step, on this step's counts
+        if balancers:
             for b, c in zip(balancers, counts):
                 b.update(c)
 
@@ -191,7 +182,7 @@ def train(model, data, cfg, strategy, seed, run_dir, max_steps=None, save=True, 
         if validate and ((step + 1) % tc["val_every"] == 0 or step + 1 == last_step):
             rec["val_ppl"] = evaluate(model, routers, block_batches(data["val"], p2["eval"]["block_batch"]))["ppl"]
 
-        if save:  # save=False is the Stage 1 throughput test: no files, no W&B
+        if save:
             wl.log({f"train/{k}": v for k, v in rec.items() if k not in ("step", "maxvio_layers", "val_ppl")}, step=step + 1)
             wl.log_per_layer("train_maxvio", rec["maxvio_layers"], step=step + 1)
             if "val_ppl" in rec:
@@ -215,7 +206,7 @@ def train(model, data, cfg, strategy, seed, run_dir, max_steps=None, save=True, 
         "steps": last_step,
         "tokens": last_step * tokens_per_step,
         "minutes": (time.time() - t_start) / 60,
-        "tok_per_s": sum(speeds[1:]) / max(1, len(speeds) - 1),  # skip the first (warmup) step
+        "tok_per_s": sum(speeds[1:]) / max(1, len(speeds) - 1),
         "peak_mem_gb": torch.cuda.max_memory_allocated() / 2**30 if device.type == "cuda" else 0.0,
     }
     if save and last_step == n_steps:
@@ -223,7 +214,7 @@ def train(model, data, cfg, strategy, seed, run_dir, max_steps=None, save=True, 
             "model": trainable_state(model),
             "bias": torch.stack([b.bias for b in balancers]).cpu() if balancers else None,
             "strategy": strategy, "seed": seed, "summary": summary, "config": cfg,
-        }, run_dir / "final.pt", _use_new_zipfile_serialization=False)  # non-zip: Kaggle inputs unpack zips
+        }, run_dir / "final.pt", _use_new_zipfile_serialization=False)
         last_path.unlink(missing_ok=True)
         (run_dir / "summary.json").write_text(json.dumps(summary, indent=2))
     return summary
@@ -240,7 +231,7 @@ def main():
     p2 = cfg["part2"]
     assert args.strategy in p2["strategies"], f"unknown strategy {args.strategy}"
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    data = torch.load(out_dir(cfg, "part2", "data") / "data.pt")  # built by stage1_base
+    data = torch.load(out_dir(cfg, "part2", "data") / "data.pt")
     name = f"{args.strategy}-s{args.seed}" + ("-smoke" if args.max_steps else "")
     run_dir = out_dir(cfg, "part2", "runs", name)
 

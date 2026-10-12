@@ -1,69 +1,68 @@
 seed: 42
 output_dir: /kaggle/working/outputs
 
-data:                       
+data:
   corpus: Goader/kobza
   val_frac: 0.01
   test_frac: 0.01
 
-part1:                      
+part1:
   model: utter-project/EuroMoE-2.6B-A0.6B-2512
   l_train: 4096
   scale: 4
   methods: [none, linear, ntk, dynamic_ntk, yarn]
   n_eval_docs: 100
-  bin_size: 1024            
+  bin_size: 1024
   passkey_depths: [0.1, 0.5, 0.9]
   passkey_lengths: [4096, 8192, 16384]
 
 part2:
   model: utter-project/EuroMoE-2.6B-A0.6B-2512
-  seeds: [42, 43]           # seed = shuffle order of the train blocks (experts frozen, no dropout)
+  seeds: [42, 43]
 
   data:
-    shard: 000_ukr_corpus_00000.parquet   # one Kobza shard (1.7 GB, ~1M docs, sources interleaved)
+    shard: 000_ukr_corpus_00000.parquet
     min_doc_chars: 200
-    max_doc_tokens: 2048    # truncate long docs so a few books don't dominate a split
-    train_pool_tokens: 10000000   # stop streaming when train reaches this
-    test_buckets: 30        # of 1000 hash buckets -> 3% test (~300k tokens)
-    val_buckets: 10         # -> 1% val (~100k tokens)
-    seq_len: 1024           # packed block length (train / val / test)
-    flores: openlanguagedata/flores_plus   # gated: accept terms + HF_TOKEN
+    max_doc_tokens: 2048
+    train_pool_tokens: 10000000
+    test_buckets: 30
+    val_buckets: 10
+    seq_len: 1024
+    flores: openlanguagedata/flores_plus
 
   train:
-    token_budget: 5000000   # fix after the Stage 1 throughput test
+    token_budget: 5000000
     micro_batch: 2
-    grad_accum: 4           # 2 x 4 x 1024 = 8192 tokens per optimizer step
-    lr: 3.0e-5              # attention and router ("normal" router LR)
-    min_lr_ratio: 0.1       # cosine decays to lr * 0.1
+    grad_accum: 4
+    lr: 3.0e-5
+    min_lr_ratio: 0.1
     warmup_steps: 30
     weight_decay: 0.0
     betas: [0.9, 0.95]
     grad_clip: 1.0
     val_every: 100
     ckpt_every: 200
-    bias_update_rate: 1.0e-3   # gamma for the sign-rule bias update
+    bias_update_rate: 1.0e-3
 
-  # aux / z: coefficients in paper form (aux = N * sum f_i P_i = 1 at balance), summed over layers
   strategies:
-    none:          {aux: 0.0,    z: 0.0,    bias: false, train_router: true}   # A
-    aux_1e-3:      {aux: 1.0e-3, z: 0.0,    bias: false, train_router: true}   # B
-    aux_1e-2:      {aux: 1.0e-2, z: 0.0,    bias: false, train_router: true}   # C
-    bias:          {aux: 0.0,    z: 0.0,    bias: true,  train_router: true}   # D
-    frozen_router: {aux: 0.0,    z: 0.0,    bias: false, train_router: false}  # E
-    aux_z:         {aux: 1.0e-3, z: 1.0e-3, bias: false, train_router: true}   # F (optional)
+    none:          {aux: 0.0,    z: 0.0,    bias: false, train_router: true}
+    aux_1e-3:      {aux: 1.0e-3, z: 0.0,    bias: false, train_router: true}
+    aux_1e-2:      {aux: 1.0e-2, z: 0.0,    bias: false, train_router: true}
+    bias:          {aux: 0.0,    z: 0.0,    bias: true,  train_router: true}
+    frozen_router: {aux: 0.0,    z: 0.0,    bias: false, train_router: false}
+    aux_z:         {aux: 1.0e-3, z: 1.0e-3, bias: false, train_router: true}
 
   eval:
-    block_batch: 4          # 4 x 1024 tokens; 128k-vocab logits are the memory limit
+    block_batch: 4
     sentence_batch: 32
     noise_floor_repeats: 1000
 
 wandb:
   project: ai500-lab1-part2
   entity: null
-  log_checkpoints: true     # upload final.pt as an artifact (Kaggle /working is lost)
+  log_checkpoints: true
 
-part3:                      
+part3:
   model: Qwen/Qwen2.5-1.5B-Instruct
   task: grammarly/spivavtor
   n_experts: 8

@@ -23,20 +23,20 @@ def tiny_model():
 
 
 def test_aux_loss_is_one_at_balance_and_larger_when_collapsed():
-    uniform = torch.zeros(E * 10, E)                      # equal probabilities
-    idx = torch.arange(E * 10 * K).remainder(E).view(-1, K)  # every expert gets the same count
+    uniform = torch.zeros(E * 10, E)
+    idx = torch.arange(E * 10 * K).remainder(E).view(-1, K)
     assert torch.isclose(aux_loss(uniform, K, E, idx), torch.tensor(1.0))
     collapsed = torch.zeros(100, E)
-    collapsed[:, :K] = 10.0                               # all tokens -> experts 0, 1
+    collapsed[:, :K] = 10.0
     assert aux_loss(collapsed, K, E) > 3.0
 
 
 def test_aux_loss_uses_step_counts_when_given():
     collapsed = torch.zeros(100, E)
-    collapsed[:, :K] = 10.0                               # this micro-batch: all tokens -> experts 0, 1
-    balanced_step = torch.full((E,), 50)                  # but the whole step so far is balanced
+    collapsed[:, :K] = 10.0
+    balanced_step = torch.full((E,), 50)
     assert torch.isclose(aux_loss(collapsed, K, E, counts=balanced_step), torch.tensor(1.0))
-    assert aux_loss(collapsed, K, E) > 3.0                # counted locally it is penalized
+    assert aux_loss(collapsed, K, E) > 3.0
 
 
 def test_z_loss():
@@ -57,11 +57,11 @@ def test_bias_changes_selection_not_gates():
     x = torch.randn(20, 32)
     r = routers[0]
     _, w0, i0 = r(x)
-    balancers[0].bias[i0[0, 0]] = -100.0                  # forbid token 0's first choice
+    balancers[0].bias[i0[0, 0]] = -100.0
     logits, w1, i1 = r(x)
     assert not torch.equal(i0, i1)
     probs = torch.softmax(logits.float(), -1).gather(-1, i1)
-    assert torch.allclose(w1, probs / probs.sum(-1, keepdim=True))  # gates from the unbiased softmax
+    assert torch.allclose(w1, probs / probs.sum(-1, keepdim=True))
 
 
 def test_bias_update_sign_rule():
@@ -86,7 +86,7 @@ def test_noise_floor_shrinks_with_tokens():
 
 
 def test_drift_and_js():
-    a = torch.rand(100, 2, E).topk(K, dim=-1).indices.to(torch.uint8).numpy()  # distinct experts per token
+    a = torch.rand(100, 2, E).topk(K, dim=-1).indices.to(torch.uint8).numpy()
     assert torch.allclose(jaccard_drift(a, a, E), torch.ones(2))
     c = torch.randint(1, 10, (3, E))
     assert torch.allclose(js_divergence(c, c), torch.zeros(3), atol=1e-6)
