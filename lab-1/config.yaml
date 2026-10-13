@@ -82,10 +82,35 @@ wandb:
   part1_project: ai500-lab1-part1
   entity: null
   log_checkpoints: true
+  part3_project: ai500-lab1-part3
 
 part3:
   model: Qwen/Qwen2.5-1.5B-Instruct
   task: grammarly/spivavtor
+  task_filter: gec        # values in the task column: gec, paraphrase, simplification, coherence
   n_experts: 8
   top_k: 2
   lora_rank: 16
+  lora_alpha: 32          # alpha = 2r for every adapter
+  aux_coef: 1.0e-2        # the strongest aux variant from Part 2
+  bias_update_rate: 1.0e-3
+
+  data:                   # train/val from the train split, test from the validation split
+    n_train: 4000
+    n_val: 300
+    n_test: 300
+    max_len: 256          # longer examples are dropped, not truncated
+
+  train:
+    steps: 250            # 250 x 16 = 1 epoch of n_train; re-check after timing
+    micro_batch: 8
+    grad_accum: 2
+    lr: 2.0e-4
+    min_lr_ratio: 0.1
+    warmup_steps: 20
+    weight_decay: 0.0
+    grad_clip: 1.0
+
+  eval:
+    batch: 16
+    max_new_tokens_ratio: 1.5   # x source length in tokens
