@@ -15,10 +15,10 @@ import numpy as np
 import wandb
 
 
-def init_run(cfg, name, job_type, config=None, group="part2"):
+def init_run(cfg, name, job_type, config=None, group="part2", project=None):
     mode = os.environ.get("WANDB_MODE") or ("online" if os.environ.get("WANDB_API_KEY") else "disabled")
     return wandb.init(
-        project=cfg["wandb"]["project"],
+        project=project or cfg["wandb"]["project"],
         entity=cfg["wandb"]["entity"],
         group=group,
         name=name,

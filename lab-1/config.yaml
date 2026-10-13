@@ -15,6 +15,26 @@ part1:
   bin_size: 1024
   passkey_depths: [0.1, 0.5, 0.9]
   passkey_lengths: [4096, 8192, 16384]
+  passkey_keys: 20
+  passkey_new_tokens: 8
+  lm_head_chunk: 1024
+  eval_shard: 001_ukr_corpus_00000.parquet   # Part 2 trains on shard 000
+  pg19: emozilla/pg19-test
+
+  finetune:
+    method: yarn
+    seq_len: 8192
+    grad_accum: 4
+    steps: 200
+    lr: 2.0e-4            # LoRA
+    lr_emb_norm: 2.0e-5   # embeddings + norms (LongLoRA)
+    min_lr_ratio: 0.1
+    warmup_steps: 20
+    weight_decay: 0.0
+    grad_clip: 1.0
+    lora_rank: 8
+    lora_alpha: 16
+    lora_targets: [q_proj, k_proj, v_proj, o_proj]
 
 part2:
   model: utter-project/EuroMoE-2.6B-A0.6B-2512
@@ -59,6 +79,7 @@ part2:
 
 wandb:
   project: ai500-lab1-part2
+  part1_project: ai500-lab1-part1
   entity: null
   log_checkpoints: true
 

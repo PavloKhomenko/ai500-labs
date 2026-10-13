@@ -154,3 +154,59 @@ def sentence_batches(seqs, batch_size, pad_id):
             ids[j, : len(s)] = torch.tensor(s)
             mask[j, : len(s)] = 1
         yield ids, mask
+
+
+
+def long_docs(texts, tokenizer, n_tokens, n_docs):
+    ids = []
+    for text in texts:
+        tok = tokenizer(text[: n_tokens * 8], add_special_tokens=False).input_ids
+        if len(tok) >= n_tokens:
+            ids.append([tokenizer.bos_token_id] + tok[:n_tokens])
+            if len(ids) == n_docs:
+                break
+    print(f"{len(ids)} documents with >= {n_tokens} tokens")
+    return torch.tensor(ids, dtype=torch.int32)
+
+
+def window_bytes(tokenizer, ids, windows):
+    return torch.tensor([[len(tokenizer.decode(row[1 : w + 1]).encode("utf-8")) for w in windows] for row in ids.tolist()])
+
+
+def prepare_part1_data(cfg, tokenizer, path):
+    data_file = path / "data.pt"
+    if data_file.exists():
+        return torch.load(data_file)
+    p1, ft = cfg["part1"], cfg["part1"]["finetune"]
+    l_train, n = p1["l_train"], p1["n_eval_docs"]
+    n_tokens, windows = p1["scale"] * l_train, [l_train * k for k in (1, 2, 4)]
+    bos, eos = tokenizer.bos_token_id, tokenizer.eos_token_id
+    train_budget = ft["steps"] * ft["grad_accum"] * ft["seq_len"]
+
+    uk, eval_keys, train_docs, n_train = [], set(), [], 0
+    for row in iter_shard(cfg["data"]["corpus"], p1["eval_shard"]):
+        text = normalize(row["text"])
+        if len(text) < 2 * l_train:  # far below L_train tokens, skip the tokenizer
+            continue
+        key = doc_key(text)
+        if key in eval_keys:
+            continue
+        ids = tokenizer(text[: n_tokens * 8], add_special_tokens=False).input_ids
+        if len(uk) < n and len(ids) >= n_tokens:
+            uk.append([bos] + ids[:n_tokens])
+            eval_keys.add(key)
+        elif len(ids) >= l_train and n_train < train_budget:
+            train_docs.append([bos] + ids + [eos])
+            n_train += len(ids) + 2
+        if len(uk) == n and n_train >= train_budget:
+            break
+    assert len(uk) == n, f"only {len(uk)} Ukrainian documents with >= {n_tokens} tokens in {p1['eval_shard']}"
+    uk = torch.tensor(uk, dtype=torch.int32)
+    en = long_docs((normalize(r["text"]) for r in load_dataset(p1["pg19"], split="test")), tokenizer, n_tokens, n)
+
+    data = {"uk": uk, "en": en, "windows": windows, "train": pack(train_docs, ft["seq_len"]),
+            "uk_bytes": window_bytes(tokenizer, uk, windows), "en_bytes": window_bytes(tokenizer, en, windows)}
+    print(f"part1 data: uk {tuple(uk.shape)}, en {tuple(en.shape)}, train {tuple(data['train'].shape)}")
+    torch.save(data, data_file)
+    (path / "eval_doc_keys.json").write_text(json.dumps(sorted(eval_keys), indent=2))
+    return data
