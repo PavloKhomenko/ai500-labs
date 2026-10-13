@@ -1,5 +1,7 @@
+import difflib
 import json
 import random
+import re
 import time
 
 import pandas as pd
@@ -12,6 +14,36 @@ from transformers import set_seed
 from ..data import normalize
 from ..part2 import wandb_log as wl
 from ..part2.pretrain import lr_factor
+
+
+def strip_instruction(src):
+    return src.split(":", 1)[1].strip()
+
+
+def word_edits(a, b):
+    a, b = re.findall(r"\w+|[^\w\s]", a), re.findall(r"\w+|[^\w\s]", b)
+    edits = set()
+    for op, i1, i2, j1, j2 in difflib.SequenceMatcher(None, a, b, autojunk=False).get_opcodes():
+        if op == "replace" and i2 - i1 == j2 - j1:  # difflib merges adjacent substitutions: split them word by word
+            edits |= {(i1 + k, i1 + k + 1, (b[j1 + k],)) for k in range(i2 - i1)}
+        elif op != "equal":
+            edits.add((i1, i2, tuple(b[j1:j2])))
+    return edits
+
+
+def edit_counts(srcs, preds, refs):
+    out = []
+    for s, p, r in zip(srcs, preds, refs):
+        hyp, gold = word_edits(s, p), word_edits(s, r)
+        out.append((len(hyp & gold), len(hyp - gold), len(gold - hyp)))
+    return out
+
+
+def f05(counts):
+    tp, fp, fn = (sum(c[i] for c in counts) for i in range(3))
+    p = tp / (tp + fp) if tp + fp else 1.0
+    r = tp / (tp + fn) if tp + fn else 1.0
+    return {"f05": 1.25 * p * r / (0.25 * p + r) if p + r else 0.0, "precision": p, "recall": r}
 
 
 class SpivavtorData:
@@ -27,7 +59,16 @@ class SpivavtorData:
         self.test = self.take(test_pool, dc["n_test"], seen, dc["max_len"])
         self.val = self.take(train_pool, dc["n_val"], seen, dc["max_len"])
         self.train = self.take(train_pool, dc["n_train"], seen, dc["max_len"])
+        # extend test only after train / val are fixed: a bigger test must not change the training data
+        self.test += self.take(test_pool, dc.get("n_test_eval", dc["n_test"]) - len(self.test), seen, dc["max_len"])
+        # the same sentence can come with another instruction: drop such test examples (train stays as it was)
+        train_text = {self.text_key(ex) for ex in self.train + self.val}
+        self.test = [ex for ex in self.test if self.text_key(ex) not in train_text]
         print({k: len(getattr(self, k)) for k in ("train", "val", "test")})
+
+    @staticmethod
+    def text_key(ex):
+        return normalize(strip_instruction(ex["src"]))
 
     def encode(self, src, tgt):
         prompt = self.tok.apply_chat_template([{"role": "user", "content": src}], add_generation_prompt=True,
@@ -70,9 +111,8 @@ class SpivavtorData:
         print("masking ok:", repr(self.tok.decode([t for t in ex["labels"] if t != -100])))
 
     def check_disjoint(self):
-        keys = {k: {normalize(ex["src"]) for ex in getattr(self, k)} for k in ("train", "val", "test")}
-        overlaps = {"train&val": keys["train"] & keys["val"], "train&test": keys["train"] & keys["test"],
-                    "val&test": keys["val"] & keys["test"]}
+        keys = {k: {self.text_key(ex) for ex in getattr(self, k)} for k in ("train", "val", "test")}
+        overlaps = {"train&test": keys["train"] & keys["test"], "val&test": keys["val"] & keys["test"]}
         assert not any(overlaps.values()), {k: len(v) for k, v in overlaps.items()}
         print("splits disjoint:", {k: len(v) for k, v in keys.items()})
 
@@ -188,7 +228,8 @@ class SFTTrainer:
             preds += tok.batch_decode(out[:, b["input_ids"].shape[1] :], skip_special_tokens=True)
         refs = [ex["tgt"] for ex in examples]
         preds = [p.strip() for p in preds]
-        return {"chrf": sacrebleu.corpus_chrf(preds, [refs]).score,
+        srcs = [strip_instruction(ex["src"]) for ex in examples]
+        return {**f05(edit_counts(srcs, preds, refs)), "chrf": sacrebleu.corpus_chrf(preds, [refs]).score,
                 "exact_match": sum(normalize(p) == normalize(r) for p, r in zip(preds, refs)) / len(refs),
                 "predictions": [{"src": ex["src"], "ref": r, "pred": p} for ex, r, p in zip(examples, refs, preds)]}
 
@@ -207,17 +248,51 @@ class SFTTrainer:
 
 
 class Part3Report:
-    def __init__(self, part3_dir, runs):
-        self.dir, self.runs = part3_dir, runs
+    """Comparison table and routing figures from <output_dir>/part3/<run>/{metrics.json, predictions.jsonl}.
+
+    Quality is recomputed from predictions: edit F0.5 / P / R (main metric), chrF and EM on all test examples and
+    on those that need a correction, plus a 'copy' row (output = input). CIs: paired bootstrap over test examples.
+    """
+
+    def __init__(self, part3_dir, runs, ref_run="lora-r102", n_boot=1000, seed=0):
+        self.dir, self.runs, self.ref_run = part3_dir, runs, ref_run
         self.metrics = {r: json.loads((part3_dir / r / "metrics.json").read_text()) for r in runs}
+        self.preds = {r: [json.loads(l) for l in (part3_dir / r / "predictions.jsonl").read_text().splitlines()]
+                      for r in runs}
+        first = self.preds[runs[0]]
+        assert all([p["src"] for p in v] == [p["src"] for p in first] for v in self.preds.values()), "different test sets"
+        self.srcs, self.refs = [strip_instruction(p["src"]) for p in first], [p["ref"] for p in first]
+        self.hyps = {r: [p["pred"] for p in v] for r, v in self.preds.items()} | {"copy": self.srcs}
+        self.counts = {r: edit_counts(self.srcs, h, self.refs) for r, h in self.hyps.items()}
+        self.changed = [i for i, (s, r) in enumerate(zip(self.srcs, self.refs)) if word_edits(s, r)]
+        rng, n = random.Random(seed), len(self.srcs)
+        self.boots = [[rng.randrange(n) for _ in range(n)] for _ in range(n_boot)]
+
+    def bootstrap(self, run):
+        f = lambda r, idx: f05([self.counts[r][i] for i in idx])["f05"]
+        ci = sorted(f(run, b) for b in self.boots)
+        delta = sorted(f(run, b) - f(self.ref_run, b) for b in self.boots)
+        q = lambda xs, a: xs[int(a * (len(xs) - 1))]
+        return {"f05_lo": q(ci, 0.025), "f05_hi": q(ci, 0.975), f"d_f05_vs_{self.ref_run}": q(delta, 0.5),
+                "d_lo": q(delta, 0.025), "d_hi": q(delta, 0.975)}
 
     def table(self):
-        rows = [{"run": r, "chrF": m["chrf"], "EM": m["exact_match"], "val_loss": m["val_loss"],
-                 "trainable_M": m["trainable"] / 1e6, "active_M": m["active"] / 1e6,
-                 "sec_per_step": m.get("sec_per_step"), "peak_mem_gb": m.get("peak_mem_gb"),
-                 "maxvio_mean": sum(m["load"]["maxvio"]) / len(m["load"]["maxvio"]) if "load" in m else None}
-                for r, m in self.metrics.items()]
+        rows = []
+        for r, hyp in self.hyps.items():
+            m = self.metrics.get(r, {})
+            sub = lambda xs: [xs[i] for i in self.changed]
+            rows.append({"run": r, **f05(self.counts[r]), **self.bootstrap(r),
+                         "chrF": sacrebleu.corpus_chrf(hyp, [self.refs]).score,
+                         "chrF_changed": sacrebleu.corpus_chrf(sub(hyp), [sub(self.refs)]).score,
+                         "EM": sum(normalize(h) == normalize(x) for h, x in zip(hyp, self.refs)) / len(hyp),
+                         "EM_changed": sum(normalize(h) == normalize(x) for h, x in zip(sub(hyp), sub(self.refs)))
+                         / len(self.changed),
+                         "val_loss": m.get("val_loss"), "trainable_M": m.get("trainable", 0) / 1e6,
+                         "active_M": m.get("active", 0) / 1e6, "sec_per_step": m.get("sec_per_step"),
+                         "peak_mem_gb": m.get("peak_mem_gb"),
+                         "maxvio_mean": sum(m["load"]["maxvio"]) / len(m["load"]["maxvio"]) if "load" in m else None})
         df = pd.DataFrame(rows)
+        print(f"test: {len(self.srcs)} examples, {len(self.changed)} need a correction")
         wl.log_table("part3/comparison", df, self.dir / "figures" / "comparison")
         return df
 

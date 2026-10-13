@@ -99,6 +99,7 @@ part3:
     n_train: 4000
     n_val: 300
     n_test: 300
+    n_test_eval: 1500     # test is extended to this after train/val are built (train stays the same)
     max_len: 256          # longer examples are dropped, not truncated
 
   train:
