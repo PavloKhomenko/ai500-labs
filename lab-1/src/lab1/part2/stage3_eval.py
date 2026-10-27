@@ -1,7 +1,5 @@
 """Stage 3: everything after training.
 
-    python -m lab1.part2.stage3_eval
-
 1. Load the base model once; re-evaluate it (must equal Stage 1).
 2. For every run with a final.pt: load its attention + router weights (+ bias), run the same evaluate()
    on UA test / FLORES uk / FLORES en, compute routing drift (Jaccard vs base top-k on the same tokens).

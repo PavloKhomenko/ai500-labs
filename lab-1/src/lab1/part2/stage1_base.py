@@ -1,7 +1,4 @@
-"""Stage 1: everything that needs no training.
-
-    python -m lab1.part2.stage1_base
-
+"""
 1. data splits (+ contamination checks)     6. base model: PPL + routing on UA test / FLORES uk / en
 2. tokenizer checks + fertility uk vs en    7. random-router noise floor
 3. HF aux-loss sanity check                 8. gradient check (aux loss reaches every router)

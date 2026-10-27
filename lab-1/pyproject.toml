@@ -3,8 +3,6 @@ name = "lab1"
 version = "0.1.0"
 description = "AI500 Lab 1: long context and mixture of experts"
 requires-python = ">=3.11"
-# torch comes in transitively (accelerate, peft) but the Kaggle setup filters it out:
-# Kaggle ships its own CUDA build. Log torch.__version__ in every run.
 dependencies = [
     "transformers",
     "datasets",

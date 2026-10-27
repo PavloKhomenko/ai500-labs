@@ -1,10 +1,3 @@
-"""Weights & Biases logging tools for Part 2 (+ the matplotlib figures we log).
-
-Every figure / table is also saved locally, so the report never depends on W&B.
-W&B runs online only when WANDB_API_KEY is set (or WANDB_MODE is given); otherwise it is disabled.
-On Kaggle: os.environ["WANDB_API_KEY"] = UserSecretsClient().get_secret("WANDB_API_KEY")
-"""
-
 import os
 
 import matplotlib

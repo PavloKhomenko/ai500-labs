@@ -1,12 +1,3 @@
-"""Continued pretraining loop, one run per (strategy, seed).
-
-    python -m lab1.part2.pretrain --strategy aux_1e-2 --seed 42 [--max_steps 5]
-
-Trainable: attention (q, k, v, o) + routers, in fp32. Frozen: experts, embeddings, norms (fp16).
-Every strategy uses the same data order (fixed by the seed), token budget, LR and schedule.
-Outputs in <output_dir>/part2/runs/<strategy>-s<seed>/: train_log.jsonl, final.pt (last.pt while running).
-"""
-
 import argparse
 import json
 import math
