@@ -46,3 +46,31 @@ wandb:
   project: ai500-lab2-part1
   entity: null
   log_checkpoints: false
+
+part2:
+  base: ibm-granite/granite-4.0-h-1b-base
+  instruct: ibm-granite/granite-4.0-h-1b
+  max_len: 2048
+  data:
+    smoltalk: HuggingFaceTB/smol-smoltalk
+    everyday: HuggingFaceTB/everyday-conversations-llama3.1-2k
+    ifeval: google/IFEval
+    alpaca_eval: tatsu-lab/alpaca_eval
+    n_train: 5000
+    n_val_smoltalk: 250
+    eda_sample: 50000
+  lora: {r: 16, alpha: 32, dropout: 0.05}
+  targets:
+    a: [in_proj]
+    b: [in_proj, input_linear, output_linear, q_proj, k_proj, v_proj, o_proj]
+  train:
+    micro_tokens: 4096
+    grad_accum: 8
+    lr: 2.0e-4
+    warmup_ratio: 0.03
+    epochs: 1
+    val_every: 20
+    grad_checkpointing: false
+    stop_prompts: 20
+    max_new_tokens: 512
+  wandb_project: ai500-lab2-part2
