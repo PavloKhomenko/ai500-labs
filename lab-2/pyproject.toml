@@ -1,0 +1,22 @@
+[project]
+name = "lab2"
+version = "0.1.0"
+description = "AI500 Lab 2 Part 1: from S4 to S6, selection variants of a pretrained Mamba"
+requires-python = ">=3.11"
+# mamba-ssm and causal-conv1d are CUDA builds: installed in the notebook's first cell
+# (prebuilt wheels exist up to torch 2.10), so torch is pinned to that range here.
+dependencies = [
+    "torch>=2.9,<2.11",
+    "transformers>=5.18,<6",
+    "datasets",
+    "zstandard",
+    "pyyaml",
+    "matplotlib",
+    "pandas",
+    "tabulate",
+    "wandb>=0.30.0",
+]
+
+[build-system]
+requires = ["uv_build>=0.8,<0.13"]
+build-backend = "uv_build"

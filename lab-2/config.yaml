@@ -1,0 +1,48 @@
+seed: 42
+output_dir: outputs            # LAB2_OUTPUT_DIR overrides (e.g. /workspace/outputs on the H100 box)
+
+part1:
+  model: state-spaces/mamba-130m-hf
+  published_ppl: 10.56
+  seq_len: 2048                # every eval document is cut to at most this (EOS prefix included)
+
+  # Mamba paper Table 7 (350M, trained from scratch): compare the ordering only
+  table7_ppl: {V1: 10.93, V2: 9.81, V3: 10.15, V4: 8.71}
+
+  data:
+    pile: monology/pile-uncopyrighted
+    test_file: test.jsonl.zst
+    val_file: val.jsonl.zst
+    train_file: train/00.jsonl.zst
+    kobza: Goader/kobza
+    kobza_shard: 001_ukr_corpus_00000.parquet   # Ukrainian is never trained on in lab 2
+    shuffle_buffer: 10000
+    en_tokens: 2000000
+    uk_tokens: 2000000
+    min_docs: 1000
+    min_doc_chars: 200
+    val_tokens: 200000
+    calib_tokens: 1000000
+    train_tokens: 30000000
+
+  train:
+    budget_tokens: 30000000
+    micro_batch: 8
+    grad_accum: 4              # 8 x 4 x 2048 = 64k tokens / step -> ~458 steps
+    lr: 3.0e-4
+    min_lr_ratio: 0.1
+    warmup_frac: 0.02
+    weight_decay: 0.1          # not on biases, norms, A_log, D, static beta / B / C
+    betas: [0.9, 0.95]
+    grad_clip: 1.0
+    val_every: 25
+    seeds: [42, 43]
+
+  checks:
+    v4_tol: 1.0e-3
+    grad_rtol: 1.0e-3
+
+wandb:
+  project: ai500-lab2-part1
+  entity: null
+  log_checkpoints: false
