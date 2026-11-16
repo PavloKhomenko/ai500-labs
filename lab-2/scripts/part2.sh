@@ -15,6 +15,7 @@ setup() {
   if ! python -c "import torch, sys; v = tuple(map(int, torch.__version__.split('+')[0].split('.')[:2])); sys.exit(not (2, 9) <= v <= (2, 10))"; then
     pip install -q torch==2.10.0 torchvision==0.25.0 --index-url https://download.pytorch.org/whl/cu126
   fi
+  pip uninstall -y -q torchaudio || true
   pip install -q -e "$LAB"
   MAMBA_KEEP_CUDA_BUILD=TRUE pip install -q mamba-ssm==2.3.2.post1 --no-build-isolation
   pip install -q causal-conv1d==1.7.0 --no-build-isolation
