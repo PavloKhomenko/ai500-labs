@@ -29,7 +29,7 @@ part1:
     budget_tokens: 30000000
     micro_batch: 8
     grad_accum: 4              # 8 x 4 x 2048 = 64k tokens / step -> ~458 steps
-    lr: 3.0e-4
+    lr: 1.0e-5                 # CP5 sweep on V4 (en ppl, baseline 9.751): 3e-4 10.05, 1e-4 9.84, 3e-5 9.77, 1e-5 9.750
     min_lr_ratio: 0.1
     warmup_frac: 0.02
     weight_decay: 0.1          # not on biases, norms, A_log, D, static beta / B / C
