@@ -37,7 +37,7 @@ def val_metrics(model, items, batches, pad_id):
 
 
 @torch.no_grad()
-def generate(model, tok, conversations, max_new_tokens, batch_size=10):
+def generate(model, tok, conversations, max_new_tokens, batch_size=5):
     was_training, device = model.training, device_of(model)
     model.eval()
     tok.padding_side = "left"

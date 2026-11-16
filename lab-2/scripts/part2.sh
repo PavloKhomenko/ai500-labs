@@ -6,6 +6,7 @@ cd "$LAB"
 [ -d /kaggle/working ] && export LAB2_OUTPUT_DIR="${LAB2_OUTPUT_DIR:-/kaggle/working/outputs}"
 export TRITON_F32_DEFAULT="${TRITON_F32_DEFAULT:-ieee}"
 export TOKENIZERS_PARALLELISM=false
+export PYTORCH_ALLOC_CONF="${PYTORCH_ALLOC_CONF:-expandable_segments:True}"
 OUT="${LAB2_OUTPUT_DIR:-$LAB/outputs}/part2"
 
 setup() {
@@ -13,12 +14,13 @@ setup() {
   nvcc --version | tail -2 || true
   nvidia-smi -L
   if ! python -c "import torch, sys; v = tuple(map(int, torch.__version__.split('+')[0].split('.')[:2])); sys.exit(not (2, 9) <= v <= (2, 10))"; then
-    pip install -q torch==2.10.0 torchvision==0.25.0 --index-url https://download.pytorch.org/whl/cu126
+    python -m pip install -q torch==2.10.0 torchvision==0.25.0 --index-url https://download.pytorch.org/whl/cu126
   fi
-  pip uninstall -y -q torchaudio torchao || true
-  pip install -q -e "$LAB"
-  MAMBA_KEEP_CUDA_BUILD=TRUE pip install -q mamba-ssm==2.3.2.post1 --no-build-isolation
-  pip install -q causal-conv1d==1.7.0 --no-build-isolation
+  python -m pip uninstall -y -q torchaudio torchao || true
+  python -c "import importlib.util as u; assert u.find_spec('torchao') is None and u.find_spec('torchaudio') is None, 'torchao/torchaudio still installed'"
+  python -m pip install -q -e "$LAB"
+  MAMBA_KEEP_CUDA_BUILD=TRUE python -m pip install -q mamba-ssm==2.3.2.post1 --no-build-isolation
+  python -m pip install -q causal-conv1d==1.7.0 --no-build-isolation
   python -c "import torch, triton, transformers, peft, mamba_ssm, causal_conv1d; print('torch', torch.__version__, 'triton', triton.__version__, 'transformers', transformers.__version__, 'peft', peft.__version__, 'mamba_ssm', mamba_ssm.__version__, 'causal_conv1d', causal_conv1d.__version__)"
 }
 

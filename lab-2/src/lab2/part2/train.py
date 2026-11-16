@@ -95,7 +95,6 @@ class SFTCallback(TrainerCallback):
         self.pending = {
             "step": step, "tokens": self.tokens, "sec_per_step": dt, "tok_per_sec": self.step_padded[step - 1] / dt,
             "scale": acc.scaler.get_scale() if acc.scaler is not None else None,
-            "skipped": int(acc.optimizer_step_was_skipped),
             "peak_mem_gb": torch.cuda.max_memory_allocated() / 1e9 if torch.cuda.is_available() else 0.0,
         }
         if step == 3 and torch.cuda.is_available():
@@ -106,8 +105,9 @@ class SFTCallback(TrainerCallback):
     def on_log(self, args, state, control, logs=None, **kwargs):
         if self.pending is None or "loss" not in logs:
             return
+        grad_norm = float(logs.get("grad_norm", math.nan))
         self.record(self.pending | {"train_loss": logs["loss"], "lr": logs.get("learning_rate"),
-                                    "grad_norm": logs.get("grad_norm")})
+                                    "grad_norm": grad_norm, "skipped": int(not math.isfinite(grad_norm))})
         self.pending = None
 
     def on_train_end(self, args, state, control, model=None, **kwargs):

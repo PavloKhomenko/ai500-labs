@@ -64,8 +64,8 @@ part2:
     a: [in_proj]
     b: [in_proj, input_linear, output_linear, q_proj, k_proj, v_proj, o_proj]
   train:
-    micro_tokens: 4096
-    grad_accum: 8
+    micro_tokens: 2048
+    grad_accum: 16
     lr: 2.0e-4
     warmup_ratio: 0.03
     epochs: 1
