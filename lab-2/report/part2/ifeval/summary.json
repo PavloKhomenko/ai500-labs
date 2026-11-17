@@ -1,0 +1,54 @@
+{
+ "base": {
+  "prompt_level_strict_acc": 0.11829944547134935,
+  "prompt_level_strict_acc_stderr": 0.01389808717670653,
+  "inst_level_strict_acc": 0.20863309352517986,
+  "prompt_level_loose_acc": 0.14417744916820702,
+  "prompt_level_loose_acc_stderr": 0.015116235588583169,
+  "inst_level_loose_acc": 0.23501199040767387,
+  "n_prompts": 541,
+  "n_instructions": 834,
+  "stop_share_lt_1280": 0.5304990757855823,
+  "empty_share": 0.37153419593345655,
+  "mean_tokens": 620.0739371534196
+ },
+ "instruct": {
+  "prompt_level_strict_acc": 0.7375231053604436,
+  "prompt_level_strict_acc_stderr": 0.018933742876044598,
+  "inst_level_strict_acc": 0.8105515587529976,
+  "prompt_level_loose_acc": 0.7652495378927912,
+  "prompt_level_loose_acc_stderr": 0.018239288213433798,
+  "inst_level_loose_acc": 0.8309352517985612,
+  "n_prompts": 541,
+  "n_instructions": 834,
+  "stop_share_lt_1280": 0.9279112754158965,
+  "empty_share": 0.0018484288354898336,
+  "mean_tokens": 376.7966728280961
+ },
+ "sft_a": {
+  "prompt_level_strict_acc": 0.43622920517560076,
+  "prompt_level_strict_acc_stderr": 0.021340853089940326,
+  "inst_level_strict_acc": 0.5551558752997602,
+  "prompt_level_loose_acc": 0.46395563770794823,
+  "prompt_level_loose_acc_stderr": 0.021460592823736743,
+  "inst_level_loose_acc": 0.5839328537170264,
+  "n_prompts": 541,
+  "n_instructions": 834,
+  "stop_share_lt_1280": 0.7781885397412199,
+  "empty_share": 0.0,
+  "mean_tokens": 465.8558225508318
+ },
+ "sft_b": {
+  "prompt_level_strict_acc": 0.47689463955637706,
+  "prompt_level_strict_acc_stderr": 0.02149358829110096,
+  "inst_level_strict_acc": 0.5971223021582733,
+  "prompt_level_loose_acc": 0.5101663585951941,
+  "prompt_level_loose_acc_stderr": 0.021512126001350697,
+  "inst_level_loose_acc": 0.6294964028776978,
+  "n_prompts": 541,
+  "n_instructions": 834,
+  "stop_share_lt_1280": 0.8280961182994455,
+  "empty_share": 0.0,
+  "mean_tokens": 394.4935304990758
+ }
+}
