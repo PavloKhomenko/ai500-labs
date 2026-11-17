@@ -17,6 +17,7 @@ dependencies = [
     "wandb>=0.30.0",
     "peft>=0.18",
     "accelerate>=1.10",
+    "openai>=1.40",
 ]
 
 [build-system]
