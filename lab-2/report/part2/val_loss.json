@@ -1,0 +1,8 @@
+{
+  "data": "356 validation conversations (250 smol-smoltalk test + 106 everyday-conversations test), identical batches to the SFT runs",
+  "metric": "lab2.part2.evaluate.val_metrics: loss on assistant tokens only, fp16 autocast",
+  "base": {"val_loss": 1.1670544584190414, "val_ppl": 3.2125160888754096, "val_acc": 0.6876199766143303, "eot_top1": 0.6052083333333333},
+  "instruct": {"val_loss": 0.975906064847012, "val_ppl": 2.653570428967286, "val_acc": 0.7227797682692728, "eot_top1": 0.7729166666666667},
+  "sft_a": {"val_loss": 0.8445526461564972, "val_ppl": 2.3269366176563824, "val_acc": 0.7466218962401596, "eot_top1": 0.9395833333333333},
+  "sft_b": {"val_loss": 0.8306032009153737, "val_ppl": 2.2947024895250077, "val_acc": 0.7499296554052787, "eot_top1": 0.95}
+}

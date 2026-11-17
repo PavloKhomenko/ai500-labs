@@ -1,0 +1,22 @@
+{
+  "base": {
+    "device": "cuda:1",
+    "minutes": 5.8,
+    "returncode": 1
+  },
+  "instruct": {
+    "device": "cuda:0",
+    "minutes": 45.7,
+    "returncode": 0
+  },
+  "sft_a": {
+    "device": "cuda:0",
+    "minutes": 45.8,
+    "returncode": 0
+  },
+  "sft_b": {
+    "device": "cuda:0",
+    "minutes": 59.5,
+    "returncode": 0
+  }
+}
