@@ -74,6 +74,9 @@ part2:
     stop_prompts: 20
     max_new_tokens: 512
   wandb_project: ai500-lab2-part2
+  chat:
+    max_new_tokens: 512
+    batch_size: 10
   judge:
     n_prompts: 100
     seed: 42
@@ -81,7 +84,7 @@ part2:
     gen_batch_size: 16
     base_url: https://api.openai.com/v1
     api_key_env: OPENAI_API_KEY
-    model: gpt-4o-mini
+    model: gpt-4o-mini-2024-07-18
     reasoning_effort: null
     max_tokens: 1024
     workers: 8
