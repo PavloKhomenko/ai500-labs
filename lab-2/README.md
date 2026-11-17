@@ -26,3 +26,17 @@ os.environ["WANDB_API_KEY"] = UserSecretsClient().get_secret("WANDB_API_KEY")
 Outputs go to `/kaggle/working/outputs/part2/sft_{a,b}/` (adapter, tokenizer with chat template, `train_config.yaml`,
 `batches.json`, `logs.csv`, `summary.json`) and are also uploaded as W&B model artifacts `sft_a` / `sft_b`
 (project `ai500-lab2-part2`).
+
+## Part 2 evaluation and chat demo
+
+Code: `src/lab2/part2/` (`judge`, `chat`); settings: `part2.chat` and `part2.judge` in `config.yaml`; prompts: `configs/chat_prompts.yaml`.
+
+```bash
+python -m lab2.part2.judge generate --model sft_b --sft_root outputs/part2   # base, instruct, sft_a, sft_b
+OPENAI_API_KEY=... python -m lab2.part2.judge judge
+python -m lab2.part2.judge report
+python -m lab2.part2.chat transcripts --model sft_b --sft_root outputs/part2
+python -m lab2.part2.chat demo --model sft_b --sft_root outputs/part2
+```
+
+IFEval runs through `lm_eval` (see `report/part2/report.md`, §2.10). Results, transcripts and the report: `report/part2/`.
