@@ -1,0 +1,49 @@
+dist-packages/mamba_ssm/ops/triton/ssd_combined.py", line 386, in _mamba_chunk_scan_combined_fwd
+    out, out_x = _chunk_scan_fwd(CB, x, dt, dA_cumsum, C, states, D=D, z=z, seq_idx=seq_idx)
+                 ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.13/dist-packages/mamba_ssm/ops/triton/ssd_chunk_scan.py", line 1286, in _chunk_scan_fwd
+    _chunk_scan_fwd_kernel[grid](
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~^
+        cb, x, z, out, out_x, dt, dA_cumsum, seq_idx, C, states, D,
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    ...<18 lines>...
+        IS_TRITON_22=TRITON_22,
+        ^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "/usr/local/lib/python3.13/dist-packages/triton/runtime/jit.py", line 370, in <lambda>
+    return lambda *args, **kwargs: self.run(grid=grid, warmup=False, *args, **kwargs)
+                                   ~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.13/dist-packages/triton/runtime/autotuner.py", line 240, in run
+    benchmark()
+    ~~~~~~~~~^^
+  File "/usr/local/lib/python3.13/dist-packages/triton/runtime/autotuner.py", line 229, in benchmark
+    timings = {config: self._bench(*args, config=config, **kwargs) for config in pruned_configs}
+                       ~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.13/dist-packages/triton/runtime/autotuner.py", line 164, in _bench
+    return self.do_bench(kernel_call, quantiles=(0.5, 0.2, 0.8))
+           ~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.13/dist-packages/triton/testing.py", line 160, in do_bench
+    fn()
+    ~~^^
+  File "/usr/local/lib/python3.13/dist-packages/triton/runtime/autotuner.py", line 150, in kernel_call
+    self.fn.run(
+    ~~~~~~~~~~~^
+        *args,
+        ^^^^^^
+        **current,
+        ^^^^^^^^^^
+    )
+    ^
+  File "/usr/local/lib/python3.13/dist-packages/triton/runtime/jit.py", line 744, in run
+    kernel.run(grid_0, grid_1, grid_2, stream, kernel.function, kernel.packed_metadata, launch_metadata,
+    ~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+               knobs.runtime.launch_enter_hook, knobs.runtime.launch_exit_hook, *bound_args.values())
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.13/dist-packages/triton/backends/nvidia/driver.py", line 713, in __call__
+    self.launch(gridX, gridY, gridZ, stream, function, self.launch_cooperative_grid, self.launch_pdl,
+    ~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+                global_scratch, profile_scratch, *args)
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+ValueError: Pointer argument (at 0) cannot be accessed from Triton (cpu tensor?)
+Running generate_until requests:   0%|                 | 0/541 [05:14<?, ?it/s]
