@@ -1,0 +1,58 @@
+prompts:
+  - id: p01
+    kind: fact, length limit
+    turns:
+      - "What causes the seasons on Earth? Answer in two or three sentences."
+
+  - id: p02
+    kind: strict format (JSON)
+    turns:
+      - 'Give me three healthy breakfast ideas as a JSON list of objects with the keys "name" and "calories". Output only the JSON, with no other text.'
+
+  - id: p03
+    kind: explanation
+    turns:
+      - "Explain what a hash table is to a beginner programmer, with one short example."
+
+  - id: p04
+    kind: creative, negative constraint
+    turns:
+      - "Write a four-line poem about autumn rain. Do not use the word 'leaves'."
+
+  - id: p05
+    kind: arithmetic reasoning
+    turns:
+      - "A train leaves at 14:35 and arrives at 17:10. How long is the trip? Show your steps."
+
+  - id: p06
+    kind: practical writing
+    turns:
+      - "Write a short, polite email to my landlord asking to fix a leaking kitchen tap this week."
+
+  - id: p07
+    kind: multi-turn, follow-up refinement
+    turns:
+      - "Suggest a name for a small coffee shop near a university."
+      - "Give me three more options, each with a one-sentence reason."
+      - "Which of these would you pick, and why? Answer in one sentence."
+
+  - id: p08
+    kind: multi-turn, rewriting for an audience
+    turns:
+      - "Summarize the story 'The Tortoise and the Hare' in one paragraph."
+      - "Now rewrite it for a five-year-old."
+      - "What is the moral of the story, in at most ten words?"
+
+  - id: p09
+    kind: multi-turn, code
+    turns:
+      - "Write a Python function that checks whether a string is a palindrome."
+      - "Make it ignore spaces and capital letters."
+      - "Add two example calls with their expected output."
+
+  - id: p10
+    kind: multi-turn, everyday conversation
+    turns:
+      - "Hi! How are you today?"
+      - "I'm planning a weekend trip but can't decide between the mountains and the sea."
+      - "Thanks! Can you make a short packing list for the mountains?"
