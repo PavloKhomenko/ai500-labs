@@ -74,3 +74,18 @@ part2:
     stop_prompts: 20
     max_new_tokens: 512
   wandb_project: ai500-lab2-part2
+  judge:
+    n_prompts: 100
+    seed: 42
+    max_new_tokens: 512
+    gen_batch_size: 16
+    base_url: https://api.openai.com/v1
+    api_key_env: OPENAI_API_KEY
+    model: gpt-4o-mini
+    reasoning_effort: null
+    max_tokens: 1024
+    workers: 8
+    min_interval_s: 0.0
+    max_retries: 6
+    price_in_per_mtok: 0.15
+    price_out_per_mtok: 0.60
