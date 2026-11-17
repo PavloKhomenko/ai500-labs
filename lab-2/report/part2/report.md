@@ -72,6 +72,48 @@ Why this model:
 
   SFT-b is lower at every evaluation step.
 
+### Training curves
+
+The per-step history comes from W&B runs `sft_a` (`7esi8qdy`) and `sft_b` (`cc5koy2n`) and is saved in
+`report/part2/training/`. The figures are drawn by `python -m lab2.part2.plots`.
+
+**Loss.** Validation loss drops from 1.167 (base) to 0.845 for SFT-a and 0.831 for SFT-b, below the official
+instruct model (0.976) on this validation set. Most of the drop happens in the first ~0.7M labelled tokens, and the
+curves are almost flat after step 100.
+
+![Train and validation loss](../figures/part2/sft_loss.png)
+
+**Stopping.** At labelled end-of-turn positions the model predicts `<|end_of_text|>` as top-1 in 0.61 of cases before
+training and 0.94 (SFT-a) / 0.95 (SFT-b) after. In generation, 20 validation prompts end with end-of-turn within 512
+tokens in 13/20 cases for the base model and 19/20 for both SFT models.
+
+![End-of-turn rate and stop rate](../figures/part2/sft_stopping.png)
+
+**Stability.** The GradScaler skipped 4 fp16 steps in SFT-a (steps 1, 2, 4 and 40) and 2 in SFT-b (steps 1 and 2).
+The gradient norm stays at about 0.15-0.25 after step 30. The spike at the last step comes from a partial gradient
+accumulation window: step 187 took 4 s instead of the usual 22-26 s.
+
+![Gradient norm and skipped steps](../figures/part2/sft_grad_norm.png)
+
+**Cost.** SFT-b trains 3.3x more parameters (15.08M vs 4.60M). This costs 13% more time per step (25.6 s vs 22.6 s)
+and 1.7 GB more peak memory (12.8 GB vs 11.1 GB).
+
+![Time per step and peak memory](../figures/part2/sft_cost.png)
+
+### W&B panels
+
+The same two runs as exported from the W&B workspace (project `ai500-lab2-part2`; green `sft_a`, pink `sft_b`; the
+x-axis is the optimizer step).
+
+| | |
+|---|---|
+| ![train_loss](../figures/part2/wandb/train_loss.png) | ![val_loss](../figures/part2/wandb/val_loss.png) |
+| Train loss per step. The two runs see identical batches, so the curves move together. | Validation loss: 1.167 → 0.845 (a) / 0.831 (b). |
+| ![val_ppl](../figures/part2/wandb/val_ppl.png) | ![val_acc](../figures/part2/wandb/val_acc.png) |
+| Validation perplexity: 3.21 → 2.33 (a) / 2.29 (b). | Next-token accuracy on assistant tokens: 0.688 → 0.747 (a) / 0.750 (b). |
+| ![eot_top1](../figures/part2/wandb/eot_top1.png) | ![tok_per_sec](../figures/part2/wandb/tok_per_sec.png) |
+| End-of-turn top-1 at labelled `<\|end_of_text\|>`: 0.61 → 0.94 (a) / 0.95 (b). | Throughput, median 1,018 tok/s (a) vs 898 (b). Both runs slowed at steps 63-64 (a: 34 s per step, b: 28 s). |
+
 ## 2.5 Evaluation setup
 
 All four models use:
@@ -199,6 +241,7 @@ python -m lab2.part2.judge generate --model sft_b --sft_root outputs/part2   # r
 python -m lab2.part2.judge judge        # needs OPENAI_API_KEY
 python -m lab2.part2.judge report
 python -m lab2.part2.chat transcripts --model sft_b --sft_root outputs/part2
+python -m lab2.part2.plots              # training figures; --fetch re-downloads the history from W&B
 lm_eval --model hf --model_args pretrained=ibm-granite/granite-4.0-h-1b-base,tokenizer=outputs/part2/sft_a,dtype=float16,peft=outputs/part2/sft_b \
   --tasks ifeval --apply_chat_template --batch_size 16 --device cuda:0 --seed 42 --log_samples --output_path outputs/part2/ifeval/sft_b
 ```
