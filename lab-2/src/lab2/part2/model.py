@@ -1,5 +1,6 @@
 import importlib
 from collections import Counter
+from pathlib import Path
 
 import torch
 import transformers.models.granitemoehybrid.modeling_granitemoehybrid as gmh
@@ -31,6 +32,12 @@ def add_lora(model, cfg, name):
 
 def load_adapter(cfg, path, device="cuda"):
     return PeftModel.from_pretrained(load_base(cfg, device=device), path).eval()
+
+
+def load_named(cfg, name, sft_root=None):
+    if name in ("base", "instruct"):
+        return load_base({**cfg, "base": cfg[name]}).eval()
+    return load_adapter(cfg, Path(sft_root) / name)
 
 
 def param_counts(model):

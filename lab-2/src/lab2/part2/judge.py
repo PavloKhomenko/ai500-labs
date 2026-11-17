@@ -51,14 +51,10 @@ def cmd_generate(cfg, judge, root, args):
     from transformers import AutoTokenizer
 
     from .evaluate import generate
-    from .model import load_adapter, load_base
+    from .model import load_named
 
-    sft_root = Path(args.sft_root)
-    tok = AutoTokenizer.from_pretrained(sft_root / "sft_a")
-    if args.model in ("base", "instruct"):
-        model = load_base({**cfg, "base": cfg[args.model]}).eval()
-    else:
-        model = load_adapter(cfg, sft_root / args.model)
+    tok = AutoTokenizer.from_pretrained(Path(args.sft_root) / "sft_a")
+    model = load_named(cfg, args.model, args.sft_root)
     prompts = sample_prompts(cfg, judge)
     convs = [[{"role": "user", "content": p["instruction"]}] for p in prompts]
     start = time.time()
