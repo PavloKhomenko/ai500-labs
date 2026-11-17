@@ -1,0 +1,44 @@
+{
+  "judge_model": "gpt-4o-mini-2024-07-18",
+  "judge_base_url": "https://api.openai.com/v1",
+  "n_calls": 800,
+  "tokens_in": 654544,
+  "tokens_out": 75850,
+  "cost_usd": 0.1437,
+  "results": {
+    "sft_a_vs_base": {
+      "win": 94,
+      "tie": 6,
+      "loss": 0,
+      "n_prompts": 100,
+      "order_consistency": 0.95,
+      "invalid_calls": 0
+    },
+    "sft_a_vs_instruct": {
+      "win": 15,
+      "tie": 15,
+      "loss": 70,
+      "n_prompts": 100,
+      "order_consistency": 0.86,
+      "invalid_calls": 0
+    },
+    "sft_b_vs_base": {
+      "win": 97,
+      "tie": 3,
+      "loss": 0,
+      "n_prompts": 100,
+      "order_consistency": 0.97,
+      "invalid_calls": 0
+    },
+    "sft_b_vs_instruct": {
+      "win": 15,
+      "tie": 17,
+      "loss": 68,
+      "n_prompts": 100,
+      "order_consistency": 0.84,
+      "invalid_calls": 0
+    }
+  },
+  "system_prompt": "Please act as an impartial judge and evaluate the quality of the responses provided by two AI assistants to the user question displayed below. You should choose the assistant that follows the user's instructions and answers the user's question better. Your evaluation should consider factors such as the helpfulness, relevance, accuracy, depth, creativity, and level of detail of their responses. Begin your evaluation by comparing the two responses and provide a short explanation of at most three sentences. Avoid any position biases and ensure that the order in which the responses were presented does not influence your decision. Do not allow the length of the responses to influence your evaluation. Do not favor certain names of the assistants. Be as objective as possible. After providing your explanation, output your final verdict by strictly following this format: \"[[A]]\" if assistant A is better, \"[[B]]\" if assistant B is better, and \"[[C]]\" for a tie.",
+  "user_template": "[User Question]\n{question}\n\n[The Start of Assistant A's Answer]\n{answer_a}\n[The End of Assistant A's Answer]\n\n[The Start of Assistant B's Answer]\n{answer_b}\n[The End of Assistant B's Answer]"
+}
